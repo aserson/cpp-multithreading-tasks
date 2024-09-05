@@ -1,77 +1,90 @@
 ﻿#include <iostream>
 #include <thread>
 #include <mutex>
-#include <deque>
 #include <random>
 #include <vector>
 #include <algorithm> 
 
-class CarWorkshop {
+class Washhouse {
     std::mutex m;
-    std::condition_variable cond_var;
-    std::vector<bool> masters_status;
-    std::vector<std::thread> cars;
+    std::condition_variable cond_var_1;
+    std::condition_variable cond_var_2;
+    std::vector<bool> washers;
+    std::vector<bool> dryers;
+    std::vector<std::thread> clothes;
 
 public:
-    CarWorkshop(std::size_t master_count) {
-        masters_status.resize(master_count, true);
+    Washhouse(std::size_t washers_count, std::size_t dryers_count) {
+        washers.resize(washers_count, true);
+        dryers.resize(dryers_count, true);
     }
 
-    ~CarWorkshop() {
-        for (auto& car : cars) {
-            if (car.joinable())
-                car.join();
+    ~Washhouse() {
+        for (auto& c : clothes) {
+            if (c.joinable())
+                c.join();
         }
     }
 
-    void add_car(std::string car_name) {
-        unsigned int time = 1 + rand() % 4;
-        cars.emplace_back(&CarWorkshop::go_to_repair, this, car_name, time);
+    void add_clothes(std::string clothes_name) {
+        unsigned int time_1 = 1 + rand() % 5;
+        unsigned int time_2 = 1 + rand() % 3;
+        clothes.emplace_back(&Washhouse::go_to_wash, this, clothes_name, time_1, time_2);
     }
 
 private:
-    int find_free_master() {
-        for (int i = 0; i < masters_status.size(); i++)
-            if (masters_status[i])
-                return i;
+    bool is_free_machine(const std::vector<bool>& machines) {
+        return std::any_of(machines.begin(), machines.end(), [](bool status) { return status; });
+    }
 
+    int find_free_machine(const std::vector<bool>& machines) {
+        for (int i = 0; i < machines.size(); i++)
+            if (machines[i])
+                return i;
         return -1;
     }
 
-    void reparing(int time) {
+    void processing(int time) {
         std::this_thread::sleep_for(std::chrono::seconds(time));
     }
 
-    bool is_free_master() {
-        return std::any_of(masters_status.begin(), masters_status.end(), [](bool status) { return status; });
-    }
-
-    void go_to_repair(std::string car_name, int time) {
+    void go_to_wash(std::string clothes_name, int time_1, int time_2) {
         std::unique_lock<std::mutex> lock(m);
 
-        cond_var.wait(lock, [this] { return is_free_master(); });
-
-        int master_id = find_free_master();
-        masters_status[master_id] = false;
+        cond_var_1.wait(lock, [this] { return is_free_machine(washers); });
+        int machine_id = find_free_machine(washers);
+        washers[machine_id] = false;
 
         lock.unlock();
-        reparing(time);
+        processing(time_1);
         lock.lock();
-          
-        std::cout << "Car " << car_name << " was repaired by master " << master_id + 1 << " in " << time << " hours" << std::endl;
-        masters_status[master_id] = true;
-        cond_var.notify_all();
+
+        std::cout << clothes_name << " Clothes was washed by washer " << machine_id + 1 << " in " << time_1 << " hours" << std::endl;
+        washers[machine_id] = true;
+        cond_var_1.notify_all();
+
+        cond_var_2.wait(lock, [this] { return is_free_machine(dryers); });
+        machine_id = find_free_machine(dryers);
+        dryers[machine_id] = false;
+
+        lock.unlock();
+        processing(time_2);
+        lock.lock();
+
+        std::cout << clothes_name << " Clothes was dried by dryer " << machine_id + 1 << " in " << time_2 << " hours" << std::endl;
+        dryers[machine_id] = true;
+        cond_var_2.notify_all();
     }
 };
 
 int main() {
-    CarWorkshop ws(3);
+    Washhouse wh(3, 3);
 
-    ws.add_car("Red Granta Old");
-    ws.add_car("Red Granta New");
-    ws.add_car("Black Almera");
-    ws.add_car("Yellow Kia");
-    ws.add_car("Timoxa");
+    wh.add_clothes("Red");
+    wh.add_clothes("Blue");
+    wh.add_clothes("Black");
+    wh.add_clothes("Yellow");
+    wh.add_clothes("Silk");
 
     return 0;
 }
