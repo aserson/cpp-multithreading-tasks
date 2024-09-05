@@ -2,61 +2,76 @@
 #include <thread>
 #include <mutex>
 #include <deque>
+#include <random>
+#include <vector>
+#include <algorithm> 
 
-std::mutex m;
-std::deque<std::string> tasks;
-const std::size_t max_tasks = 3;
-std::condition_variable cond_var;
+class CarWorkshop {
+    std::mutex m;
+    std::condition_variable cond_var;
+    std::vector<bool> masters_status;
+    std::vector<std::thread> cars;
 
-void add_task(std::string task) {
-    std::unique_lock<std::mutex> lock(m);
-
-    cond_var.wait(lock, [] { return tasks.size() < max_tasks; });
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    tasks.push_back(task);
-    std::cout << "We add " << task << std::endl;
-
-    cond_var.notify_one();
-}
-
-void take_task() {
-    std::unique_lock<std::mutex> lock(m);
-
-    if (cond_var.wait_for(lock, std::chrono::seconds(5), [] { return !tasks.empty(); })) {
-
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        std::cout << "We take " << tasks[0] << std::endl;
-        tasks.pop_front();
-
-        cond_var.notify_one();
+public:
+    CarWorkshop(std::size_t master_count) {
+        masters_status.resize(master_count, true);
     }
-    else {
-        std::cout << "We have no tasks " << std::endl;
+
+    ~CarWorkshop() {
+        for (auto& car : cars) {
+            if (car.joinable())
+                car.join();
+        }
     }
-}
+
+    void add_car(std::string car_name) {
+        unsigned int time = 1 + rand() % 4;
+        cars.emplace_back(&CarWorkshop::go_to_repair, this, car_name, time);
+    }
+
+private:
+    int find_free_master() {
+        for (int i = 0; i < masters_status.size(); i++)
+            if (masters_status[i])
+                return i;
+
+        return -1;
+    }
+
+    void reparing(int time) {
+        std::this_thread::sleep_for(std::chrono::seconds(time));
+    }
+
+    bool is_free_master() {
+        return std::any_of(masters_status.begin(), masters_status.end(), [](bool status) { return status; });
+    }
+
+    void go_to_repair(std::string car_name, int time) {
+        std::unique_lock<std::mutex> lock(m);
+
+        cond_var.wait(lock, [this] { return is_free_master(); });
+
+        int master_id = find_free_master();
+        masters_status[master_id] = false;
+
+        lock.unlock();
+        reparing(time);
+        lock.lock();
+          
+        std::cout << "Car " << car_name << " was repaired by master " << master_id + 1 << " in " << time << " hours" << std::endl;
+        masters_status[master_id] = true;
+        cond_var.notify_all();
+    }
+};
 
 int main() {
-    std::thread t1(add_task, "task 1");
-    std::thread t2(add_task, "task 2");
-    std::thread t3(add_task, "task 3");
-    std::thread t4(add_task, "task 4");
-    std::thread t5(take_task);
-    std::thread t6(take_task);
-    std::thread t7(take_task);
-    std::thread t8(take_task);
-    std::thread t9(take_task);
+    CarWorkshop ws(3);
 
-    t1.join();
-    t2.join();
-    t3.join();
-    t4.join();
-    t5.join();
-    t6.join();
-    t7.join();
-    t8.join();
-    t9.join();
+    ws.add_car("Red Granta Old");
+    ws.add_car("Red Granta New");
+    ws.add_car("Black Almera");
+    ws.add_car("Yellow Kia");
+    ws.add_car("Timoxa");
 
     return 0;
 }
