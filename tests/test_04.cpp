@@ -1,6 +1,8 @@
 ﻿#include "gtest/gtest.h"
 
-#include "main.h"
+#include <algorithm>
+
+#include "task_04.h"
 
 void StringAnalysis(const std::string& output, std::vector<int>& eating_count, std::vector<int>& finish_count) {
     std::istringstream stream(output);
@@ -25,6 +27,7 @@ void StringAnalysis(const std::string& output, std::vector<int>& eating_count, s
 
 template<int PhilosopherCount>
 void EatingCountTest(int expected, unsigned int time_for_thinking, unsigned int time_for_eating) {
+    std::streambuf* original_buffer = std::cout.rdbuf();
 
     std::ostringstream captured_output;
     std::cout.rdbuf(captured_output.rdbuf());
@@ -33,6 +36,7 @@ void EatingCountTest(int expected, unsigned int time_for_thinking, unsigned int 
         Table<PhilosopherCount> table(time_for_thinking, time_for_eating);
         table.run(expected);
     }
+    std::cout.rdbuf(original_buffer);
 
     std::vector<int> eating_count;
     std::vector<int> finish_count;
@@ -66,4 +70,9 @@ TEST(ThreadProject, EatingCountTest) {
     EatingCountTest<4>(5, 200, 200);
     EatingCountTest<5>(5, 200, 200);
     EatingCountTest<6>(5, 200, 200);
+}
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
