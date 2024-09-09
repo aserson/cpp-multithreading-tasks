@@ -11,10 +11,12 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-file(GLOB_RECURSE TEST_SOURCES "*.cpp")
-add_executable(cpp-multithreading-tests ${TEST_SOURCES})
+add_executable(test-04 test-04.cpp)
+add_executable(test-05 test-05.cpp)
 
-target_link_libraries(cpp-multithreading-tests gtest gtest_main)
+target_link_libraries(test-04 gtest gtest_main)
+target_link_libraries(test-05 gtest gtest_main)
 
 enable_testing()
-add_test(NAME all-tests COMMAND cpp-multithreading-tests)
+add_test(NAME test-04 COMMAND test-04)
+add_test(NAME test-05 COMMAND test-05)

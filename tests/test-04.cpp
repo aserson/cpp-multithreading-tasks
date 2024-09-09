@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "task_04.h"
+#include "task-04.h"
 
 void StringAnalysis(const std::string& output, std::vector<int>& eating_count, std::vector<int>& finish_count) {
     std::istringstream stream(output);
@@ -55,7 +55,7 @@ void EatingCountTest(int expected, unsigned int time_for_thinking, unsigned int 
 
 }
 
-TEST(ThreadProject, EatingCountTest) {
+TEST(Task04, EatingCountTest) {
     EatingCountTest<3>(3, 200, 200);
     EatingCountTest<4>(3, 200, 200);
     EatingCountTest<5>(3, 200, 200);
@@ -70,9 +70,4 @@ TEST(ThreadProject, EatingCountTest) {
     EatingCountTest<4>(5, 200, 200);
     EatingCountTest<5>(5, 200, 200);
     EatingCountTest<6>(5, 200, 200);
-}
-
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }
