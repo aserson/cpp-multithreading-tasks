@@ -33,6 +33,8 @@ bld/
 [Ll]og/
 [Ll]ogs/
 outputs/
+.idea/
+cmake-build-debug/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
