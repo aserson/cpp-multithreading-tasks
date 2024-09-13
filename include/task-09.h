@@ -10,7 +10,6 @@
 
 #include <iostream>
 #include <deque>
-#include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
@@ -21,11 +20,11 @@ class ConcurrentFIFOQueue {
     std::condition_variable push_var, pop_var;
 
     std::deque<TQueue> queue;
-    std::size_t limit;
+    const std::size_t limit;
     std::size_t waiting_time;
 
 public:
-    ConcurrentFIFOQueue(std::size_t limit) : ConcurrentFIFOQueue(limit, 2000) {}
+    explicit ConcurrentFIFOQueue(const std::size_t limit) : ConcurrentFIFOQueue(limit, 2000) {}
     ConcurrentFIFOQueue(std::size_t limit, std::size_t waiting_time) : limit(limit), waiting_time(waiting_time) {}
 
     void push(const TQueue& val) {
@@ -34,7 +33,6 @@ public:
         if (!push_var.wait_for(lock, std::chrono::milliseconds(waiting_time), [this] () {
             return queue.size() < limit;
             })) {
-            std::cout << "Waiting more then " << waiting_time << "ms." << std::endl;
             throw std::runtime_error("Timeout waiting for push");
         }
 
@@ -48,7 +46,6 @@ public:
         if (!pop_var.wait_for(lock, std::chrono::milliseconds(waiting_time), [this] () {
             return !queue.empty();
             })) {
-            std::cout << "Waiting more then " << waiting_time << "ms." << std::endl;
             throw std::runtime_error("Timeout waiting for pop");
         }
 

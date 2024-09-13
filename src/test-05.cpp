@@ -1,5 +1,6 @@
-#include "gtest/gtest.h"
+#include "task-05.h"
 
+#include <cassert>
 #include <iostream>
 #include <fstream>
 #include <random>
@@ -8,11 +9,8 @@
 #include <functional>
 #include <filesystem>
 
-#include "task-05.h"
-
 void CreateTextFile(const std::filesystem::path& file_name, const std::size_t file_size, const char constant_letter = '\0') {
-    if (std::filesystem::exists(file_name)) {
-        std::cout << "Testfile " << file_name.string() << " exists" << std::endl;
+    if (exists(file_name)) {
         return;
     }
 
@@ -54,8 +52,10 @@ public:
     }
 };
 
-TEST(Taks05, EqualityTest) {
+void equality_test() {
     CreateTextFile("testfile128mb.txt", 128 * 1024 * 1024);
+
+    std::cout << "Testing equality operations... ";
     std::vector<char> computed;
     std::vector<char> expected;
 
@@ -77,20 +77,27 @@ TEST(Taks05, EqualityTest) {
         std::memcpy(expected.data(), reader_fully.getBuffer(), expected_size * sizeof(char));
     }
 
-    EXPECT_EQ(computed.size(), expected.size());
+    assert(computed.size() == expected.size());
 
     for (long long i = 0; i < computed.size(); ++i) {
-        ASSERT_EQ(computed[i], expected[i]) << "Mismatch at index " << i << " ("
-                                            << static_cast<int>(computed[i]) << " vs "
-                                            << static_cast<int>(expected[i]) << ")";
+        if (computed[i] != expected[i]) {
+            std::cout << "Mismatch at index "
+                    << i << " (" << static_cast<int>(computed[i]) << " vs "
+                                 << static_cast<int>(expected[i]) << ")";
+
+            assert(false);
+        }
     }
+
+    std::cout << "Done!" << std::endl;
 }
 
-TEST(Taks05, PerformanseTest) {
+void performance_test() {
     CreateTextFile("testfile1024mb.txt", 1024 * 1024 * 1024);
     double n_threads_time;
     double one_thread_time;
 
+    std::cout << "Performance test" << std::endl;
     {
         MultiThreadReader reader_fully("testfile1024mb.txt");
         one_thread_time = Timer::measure(&MultiThreadReader::read, &reader_fully, 1);
@@ -101,45 +108,84 @@ TEST(Taks05, PerformanseTest) {
         n_threads_time = Timer::measure(&MultiThreadReader::read, &reader_partially, 2);
     }
 
-    EXPECT_TRUE(n_threads_time < one_thread_time);
+    assert(n_threads_time < one_thread_time);
 
     std::cout << "One thread time: " << one_thread_time << std::endl;
     std::cout << "N thread time: " << n_threads_time << std::endl;
+
+    std::cout << "Done!" << std::endl;
 }
 
-TEST(Taks05, EmptyFileTest) {
+void empty_file_test() {
     CreateTextFile("testfile0b.txt", 0);
+
+    std::cout << "Empty file test... ";
 
     MultiThreadReader reader("testfile0b.txt");
 
     reader.read(4);  // Use 4 threads
-    EXPECT_EQ(reader.getBufferSize(), 0);  // Buffer size should be 0
+    assert(reader.getBufferSize() == 0);  // Buffer size should be 0
+
+    std::cout << "Done!" << std::endl;
 }
 
-TEST(Taks05, SmallFileWithManyThreadsTest) {
+void small_file_with_many_threads_test() {
     CreateTextFile("testfile10bA.txt", 10, 'A');
+
+    std::cout << "Small file with many threads... ";
 
     MultiThreadReader reader("testfile10bA.txt");
 
     reader.read(100);  // Use 100 threads, even though the file is only 10 bytes
-    EXPECT_EQ(reader.getBufferSize(), 10);  // Buffer size should match file size
+    assert(reader.getBufferSize() == 10);  // Buffer size should match file size
 
     const char* buffer = reader.getBuffer();
     for (std::size_t i = 0; i < 10; ++i) {
-        EXPECT_EQ(buffer[i], 'A');  // Check the contents of the file
+        assert(buffer[i] == 'A');  // Check the contents of the file
     }
+
+    std::cout << "Done!" << std::endl;
 }
 
-TEST(Taks05, InvalidFilePathTest) {
-    EXPECT_THROW({
+void invalid_file_path_test() {
+    std::cout << "Testing invalid file path... ";
+
+    try {
         MultiThreadReader reader("nonexistent_file.txt");
-        reader.read(4);  // This should throw an exception
-    }, std::runtime_error);
+        reader.read(4);
+    } catch (std::runtime_error& error) {
+        if (std::strcmp(error.what(), "Could not open the file: nonexistent_file.txt") == 0) {
+            std::cout << "Done!" << std::endl;
+            return;
+        }
+    }
+
+    std::cout << "Failed!" << std::endl;
 }
 
-TEST(Taks05, FilePermissionTest) {
-    EXPECT_THROW({
+void file_permission_test() {
+    std::cout << "File Permission Test... ";
+
+    try {
         MultiThreadReader reader("/root/restricted_file.txt");
         reader.read(4);
-    }, std::runtime_error);
+    } catch (std::runtime_error& error) {
+        if (std::strcmp(error.what(), "Could not open the file: /root/restricted_file.txt") == 0) {
+            std::cout << "Done!" << std::endl;
+            return;
+        }
+    }
+
+    std::cout << "Failed!" << std::endl;
+}
+
+int main() {
+    equality_test();
+    performance_test();
+    empty_file_test();
+    small_file_with_many_threads_test();
+    invalid_file_path_test();
+    file_permission_test();
+
+    return 0;
 }

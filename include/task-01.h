@@ -1,14 +1,17 @@
-﻿#include <iostream>
+﻿#pragma once
+
+#include <iostream>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 #include <deque>
 
-std::mutex m;
-std::deque<std::string> tasks;
-const std::size_t max_tasks = 3;
-std::condition_variable cond_var;
+inline std::mutex m;
+inline std::deque<std::string> tasks;
+constexpr std::size_t max_tasks = 3;
+inline std::condition_variable cond_var;
 
-void add_task(std::string task) {
+inline void add_task(const std::string &task) {
     std::unique_lock<std::mutex> lock(m);
 
     cond_var.wait(lock, [] { return tasks.size() < max_tasks; });
@@ -20,7 +23,7 @@ void add_task(std::string task) {
     cond_var.notify_one();
 }
 
-void take_task() {
+inline void take_task() {
     std::unique_lock<std::mutex> lock(m);
 
     if (cond_var.wait_for(lock, std::chrono::seconds(5), [] { return !tasks.empty(); })) {
@@ -36,27 +39,3 @@ void take_task() {
         std::cout << "We have no tasks " << std::endl;
     }
 }
-
-// int main() {
-//     std::thread t1(add_task, "task 1");
-//     std::thread t2(add_task, "task 2");
-//     std::thread t3(add_task, "task 3");
-//     std::thread t4(add_task, "task 4");
-//     std::thread t5(take_task);
-//     std::thread t6(take_task);
-//     std::thread t7(take_task);
-//     std::thread t8(take_task);
-//     std::thread t9(take_task);
-
-//     t1.join();
-//     t2.join();
-//     t3.join();
-//     t4.join();
-//     t5.join();
-//     t6.join();
-//     t7.join();
-//     t8.join();
-//     t9.join();
-
-//     return 0;
-// }

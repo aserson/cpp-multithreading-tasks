@@ -1,10 +1,11 @@
-﻿#include "gtest/gtest.h"
+﻿#include "task-04.h"
 
+#include <iostream>
+#include <sstream>
 #include <algorithm>
+#include <cassert>
 
-#include "task-04.h"
-
-void StringAnalysis(const std::string& output, std::vector<int>& eating_count, std::vector<int>& finish_count) {
+void StringAnalysis(const std::string &output, std::vector<int> &eating_count, std::vector<int> &finish_count) {
     std::istringstream stream(output);
     std::string line;
 
@@ -27,7 +28,9 @@ void StringAnalysis(const std::string& output, std::vector<int>& eating_count, s
 
 template<int PhilosopherCount>
 void EatingCountTest(int expected, unsigned int time_for_thinking, unsigned int time_for_eating) {
-    std::streambuf* original_buffer = std::cout.rdbuf();
+    std::cout << "Eating " << PhilosopherCount << " Philosophers " << expected << " times... ";
+
+    std::streambuf *original_buffer = std::cout.rdbuf();
 
     std::ostringstream captured_output;
     std::cout.rdbuf(captured_output.rdbuf());
@@ -45,17 +48,18 @@ void EatingCountTest(int expected, unsigned int time_for_thinking, unsigned int 
 
     StringAnalysis(captured_output.str(), eating_count, finish_count);
 
-    EXPECT_TRUE(std::all_of(eating_count.begin(), eating_count.end(), [expected](int elem) {
+    assert(std::all_of(eating_count.begin(), eating_count.end(), [expected](const int elem) {
         return elem == expected;
         }));
 
-    EXPECT_TRUE(std::all_of(finish_count.begin(), finish_count.end(), [expected](int elem) {
+    assert(std::all_of(finish_count.begin(), finish_count.end(), [expected](const int elem) {
         return elem == expected;
         }));
 
+    std::cout << "Done!" << std::endl;
 }
 
-TEST(Task04, EatingCountTest) {
+int main() {
     EatingCountTest<3>(3, 200, 200);
     EatingCountTest<4>(3, 200, 200);
     EatingCountTest<5>(3, 200, 200);
@@ -70,4 +74,6 @@ TEST(Task04, EatingCountTest) {
     EatingCountTest<4>(5, 200, 200);
     EatingCountTest<5>(5, 200, 200);
     EatingCountTest<6>(5, 200, 200);
+
+    return 0;
 }
