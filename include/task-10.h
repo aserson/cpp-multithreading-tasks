@@ -9,14 +9,14 @@
 
 typedef std::vector<std::vector<int>> Matrix;
 
-class MultithreadMatrixMultiplicator {
+class MultiThreadMatrixMultiplicator {
     std::vector<std::thread> threads;
-    std::size_t num_threads;
+    const std::size_t num_threads;
 
     Matrix left, right;
-    std::size_t rows_left, cols_left, rows_right, cols_right;
+    unsigned int rows_left, cols_left, rows_right, cols_right;
 public:
-    MultithreadMatrixMultiplicator(const Matrix& left, const Matrix& right, const std::size_t num_threads) : left(left), right(right), num_threads(num_threads) {
+    MultiThreadMatrixMultiplicator(const Matrix& left, const Matrix& right, const unsigned int num_threads) : num_threads(num_threads), left(left), right(right){
         rows_left = left.size();
         rows_right = right.size();
 
@@ -29,7 +29,7 @@ public:
         }
     }
 
-    ~MultithreadMatrixMultiplicator() {
+    ~MultiThreadMatrixMultiplicator() {
         join_all();
     }
 
@@ -42,16 +42,16 @@ public:
             throw std::invalid_argument("Matrices cannot be multiplied due to incompatible dimensions");
         }
 
-        std::size_t part_rows = rows_left / num_threads;
+        const unsigned int part_rows = rows_left / num_threads;
 
         Matrix ans;
         ans.resize(rows_left, std::vector<int>(cols_right, 0));
 
-        for (std::size_t i = 0; i < num_threads; ++i) {
-            std::size_t current_offset = i * part_rows;
-            std::size_t current_rows = (i != num_threads - 1) ? part_rows : (rows_left - current_offset);
+        for (unsigned int i = 0; i < num_threads; ++i) {
+            const unsigned int current_offset = i * part_rows;
+            const unsigned int current_rows = (i != num_threads - 1) ? part_rows : (rows_left - current_offset);
 
-            threads.emplace_back(&MultithreadMatrixMultiplicator::multiplocation, this, current_offset, current_rows, std::ref(ans));
+            threads.emplace_back(&MultiThreadMatrixMultiplicator::multiplication, this, current_offset, current_rows, std::ref(ans));
         }
 
         join_all();
@@ -60,10 +60,10 @@ public:
     }
 
 private:
-    void multiplocation(const std::size_t offset, const std::size_t rows, Matrix& ans) {
-        for (int i = offset; i < offset + rows; ++i)
-            for (int j = 0; j < cols_right; ++j)
-                for (int k = 0; k < cols_left; ++k)
+    void multiplication(const unsigned int offset, const unsigned rows, Matrix& ans) const {
+        for (unsigned int i = offset; i < offset + rows; ++i)
+            for (unsigned int j = 0; j < cols_right; ++j)
+                for (unsigned int k = 0; k < cols_left; ++k)
                     ans[i][j] += left[i][k] * right[k][j];
     }
 

@@ -1,17 +1,23 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.17)
 project(cpp-multithreading-tasks)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-file(GLOB_RECURSE SOURCES "src/*.cpp")
-add_executable(cpp-multithreading-tasks ${SOURCES})
+foreach(i RANGE 1 10)
+    if(${i} LESS 10)
+        set(idx "0${i}")
+    else()
+        set(idx "${i}")
+    endif()
 
-file(GLOB_RECURSE HEADERS "include/*.h")
-target_sources(cpp-multithreading-tasks PRIVATE ${HEADERS})
+    set(PROJECT_NAME "test-${idx}")
 
-add_subdirectory(tests)
+    add_executable(${PROJECT_NAME} 
+        ${CMAKE_SOURCE_DIR}/src/test-${idx}.cpp 
+        ${CMAKE_SOURCE_DIR}/include/task-${idx}.h
+    )
+endforeach()

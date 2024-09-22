@@ -1,11 +1,9 @@
-﻿#include "gtest/gtest.h"
-
-#include <iostream>
+﻿#include <iostream>
 #include <random>
 #include <chrono>
-#include <cstring>
 #include <functional>
 #include <algorithm>
+#include <cassert>
 
 #include "task-06.h"
 
@@ -15,7 +13,9 @@ std::vector<int> CreateBuffer(const std::size_t buffer_size) {
     std::uniform_int_distribution<> dist(-100, 100);
 
     std::vector<int> output(buffer_size);
-    std::generate(output.begin(), output.end(), std::bind(dist, std::ref(gen)));
+    for (int & i : output) {
+        i = dist(gen);
+    }
 
     return output;
 }
@@ -43,19 +43,25 @@ void SortingTest(std::vector<int> input, const std::size_t threads_count) {
         output = sorter.sort(input);
     }
 
-    ASSERT_EQ(output.size(), input.size()) << "Sizes of input and output vectors are different";
+    if (output.size() != input.size()) {
+        std::cout << "Sizes of input and output vectors are different" << std::endl;
+        assert(false);
+    }
 
     std::sort(input.begin(), input.end());
 
     for (int i = 0; i < output.size(); ++i)
-        ASSERT_EQ(output[i], input[i]) << "Mismatch at index " << i << " ("
-        << static_cast<int>(output[i]) << " vs "
-        << static_cast<int>(input[i]) << ")";
+        if (output[i] != input[i]) {
+            std::cout << "Mismatch at index " << i << " ("
+                    << static_cast<int>(output[i]) << " vs "
+                    << static_cast<int>(input[i]) << ")" << std::endl;
+            assert(false);
+        }
 
     std::cout << " Done!" << std::endl;
 }
 
-TEST(Taks06, SmallArrayTest) {
+void SmallArrayTest() {
     SortingTest(CreateBuffer(10), 1);
     SortingTest(CreateBuffer(10), 2);
     SortingTest(CreateBuffer(10), 3);
@@ -63,7 +69,7 @@ TEST(Taks06, SmallArrayTest) {
     SortingTest(CreateBuffer(10), std::thread::hardware_concurrency());
 }
 
-TEST(Taks06, LargeArrayTest) {
+void LargeArrayTest() {
     SortingTest(CreateBuffer(10000), 1);
     SortingTest(CreateBuffer(10000), 2);
     SortingTest(CreateBuffer(10000), 3);
@@ -71,7 +77,7 @@ TEST(Taks06, LargeArrayTest) {
     SortingTest(CreateBuffer(10000), std::thread::hardware_concurrency());
 }
 
-TEST(Taks06, AlreadySortedTest) {
+void AlreadySortedTest() {
     auto data = CreateBuffer(500);
     std::sort(data.begin(), data.end());
 
@@ -82,7 +88,7 @@ TEST(Taks06, AlreadySortedTest) {
     SortingTest(data, std::thread::hardware_concurrency());
 }
 
-TEST(Taks06, ReverseSortedTest) {
+void ReverseSortedTest() {
     auto data = CreateBuffer(500);
     std::sort(data.begin(), data.end(), [](int lha, int rha) { return lha > rha; });
 
@@ -92,7 +98,7 @@ TEST(Taks06, ReverseSortedTest) {
     SortingTest(data, 4);
 }
 
-TEST(Taks06, EmptyArrayTest) {
+void EmptyArrayTest() {
     std::vector<int> data;
 
     SortingTest(data, 1);
@@ -100,4 +106,14 @@ TEST(Taks06, EmptyArrayTest) {
     SortingTest(data, 3);
     SortingTest(data, 4);
     SortingTest(data, std::thread::hardware_concurrency());
+}
+
+int main() {
+    SmallArrayTest();
+    LargeArrayTest();
+    AlreadySortedTest();
+    ReverseSortedTest();
+    EmptyArrayTest();
+
+    return 0;
 }

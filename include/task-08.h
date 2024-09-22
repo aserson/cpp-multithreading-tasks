@@ -1,6 +1,6 @@
-﻿// Реализуйте механизм барьерной синхронизации. Это такой синхронизационный механизм, 
-// где все потоки должны достичь определенной точки в своей работе, прежде чем они 
-// смогут продолжить выполнение.
+﻿// Реализуйте шаблон "Чтение-Запись" с приоритетом для читателей или писателей. Используйте
+// std::mutex и std::condition_variable, чтобы несколько потоков могли одновременно читать
+// данные, но только один поток мог записывать данные в любой момент времени.
 
 #pragma once
 
@@ -28,16 +28,15 @@ class ReaderWriter {
     int waiting_writers = 0;
 
     Users priority;
-    std::size_t prioritized_count = 0;
-    std::size_t max_prioritized;
+    unsigned int prioritized_count = 0;
+    unsigned int max_prioritized;
 public:
     ReaderWriter() : ReaderWriter(Users::Writers) {}
 
-    ReaderWriter(Users priority) : ReaderWriter(priority, 3) {}
+    explicit ReaderWriter(const Users priority) : ReaderWriter(priority, 3) {}
 
-    ReaderWriter(Users priority, std::size_t max_prioritized)
-        : priority(priority), buffer(""), max_prioritized(max_prioritized)
-    {}
+    explicit ReaderWriter(const Users priority, const std::size_t max_prioritized)
+        : priority(priority), max_prioritized(max_prioritized) {}
 
     ~ReaderWriter() {
         for (auto& thread : threads)
@@ -49,23 +48,23 @@ public:
         threads.emplace_back(&ReaderWriter::write_process, this, input);
     }
 
-    void add_reader(const std::size_t position, const std::size_t length) {
+    void add_reader(const unsigned int position, const unsigned int length) {
         threads.emplace_back(&ReaderWriter::read_process, this, position, length);
     }
 
-    void set_priority(Users users) {
+    void set_priority(const Users users) {
         priority = users;
         prioritized_count = 0;
     }
 
-    void set_priority(Users users, const std::size_t prioritized) {
+    void set_priority(const Users users, const unsigned int prioritized) {
         priority = users;
         max_prioritized = prioritized;
         prioritized_count = 0;
     }
 
 private:
-    void process(const std::size_t time) {
+    static void process(const unsigned int time) {
         std::this_thread::sleep_for(std::chrono::milliseconds(time));
     }
 
@@ -101,7 +100,7 @@ private:
         }
     }
 
-    void read_process(const std::size_t position, const std::size_t length) {
+    void read_process(const unsigned int position, const unsigned int length) {
         std::unique_lock<std::mutex> lock(mtx);
 
         reader_cond.wait_for(lock, std::chrono::seconds(2), [this, position, length]() {
@@ -117,7 +116,7 @@ private:
             std::cout << "Reader read: " << std::string(buffer.begin() + position, buffer.begin() + position + length) << std::endl;
         } else {
             std::cout << "Reader can't read symbols " << position << " through " << position + length << std::endl;
-            std::cout << "Buffer lenght: " << buffer.size() << std::endl;
+            std::cout << "Buffer length: " << buffer.size() << std::endl;
         }
 
         active_readers--;
