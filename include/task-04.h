@@ -22,11 +22,11 @@ class Table {
 public:
     Table() : Table(2000, 2000) {}
 
-    Table(unsigned int time_for_thinking, unsigned int time_for_eating) 
+    Table(const unsigned int time_for_thinking, const unsigned int time_for_eating)
         : time_for_thinking(time_for_thinking), time_for_eating(time_for_eating) { }
 
     ~Table() {
-        for (auto& philosopher : philosophers) {
+        for (auto &philosopher: philosophers) {
             if (philosopher.joinable())
                 philosopher.join();
         }
@@ -38,11 +38,11 @@ public:
     }
 
 private:
-    void processing(int time) {
+    static void processing(const int time) {
         std::this_thread::sleep_for(std::chrono::milliseconds(time));
     }
 
-    void go_to_table(int philosopher_id, unsigned int eating_count) {
+    void go_to_table(const int philosopher_id, const unsigned int eating_count) {
         int left_fork = philosopher_id;
         int right_fork = (philosopher_id + 1) % PhilosophersCount;
 

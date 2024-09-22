@@ -6,8 +6,7 @@
 #include <condition_variable>
 #include <random>
 #include <vector>
-#include <algorithm> 
-
+#include <algorithm>
 
 class Washhouse {
     std::mutex m;
@@ -17,8 +16,12 @@ class Washhouse {
     std::vector<bool> dryers;
     std::vector<std::thread> clothes;
 
+    std::random_device rd;
+    std::mt19937 gen;
+    std::uniform_int_distribution<> dist1;
+    std::uniform_int_distribution<> dist2;
 public:
-    Washhouse(std::size_t washers_count, std::size_t dryers_count) {
+    Washhouse(const std::size_t& washers_count, const std::size_t& dryers_count) : gen(rd()), dist1(1,4), dist2(1, 3) {
         washers.resize(washers_count, true);
         dryers.resize(dryers_count, true);
     }
@@ -30,29 +33,29 @@ public:
         }
     }
 
-    void add_clothes(std::string clothes_name) {
-        unsigned int time_1 = 1 + rand() % 5;
-        unsigned int time_2 = 1 + rand() % 3;
+    void add_clothes(const std::string& clothes_name) {
+        unsigned int time_1 = dist1(gen);
+        unsigned int time_2 = dist2(gen);
         clothes.emplace_back(&Washhouse::go_to_wash, this, clothes_name, time_1, time_2);
     }
 
 private:
-    bool is_free_machine(const std::vector<bool>& machines) {
-        return std::any_of(machines.begin(), machines.end(), [](bool status) { return status; });
+    static bool is_free_machine(const std::vector<bool>& machines) {
+        return std::any_of(machines.begin(), machines.end(), [](const bool status) { return status; });
     }
 
-    int find_free_machine(const std::vector<bool>& machines) {
+    static int find_free_machine(const std::vector<bool>& machines) {
         for (int i = 0; i < machines.size(); i++)
             if (machines[i])
                 return i;
         return -1;
     }
 
-    void processing(int time) {
+    static void processing(const int time) {
         std::this_thread::sleep_for(std::chrono::seconds(time));
     }
 
-    void go_to_wash(std::string clothes_name, int time_1, int time_2) {
+    void go_to_wash(const std::string& clothes_name, const int time_1, const int time_2) {
         std::unique_lock<std::mutex> lock(m);
 
         cond_var_1.wait(lock, [this] { return is_free_machine(washers); });
@@ -80,15 +83,3 @@ private:
         cond_var_2.notify_all();
     }
 };
-
-// int main() {
-//     Washhouse wh(3, 3);
-
-//     wh.add_clothes("Red");
-//     wh.add_clothes("Blue");
-//     wh.add_clothes("Black");
-//     wh.add_clothes("Yellow");
-//     wh.add_clothes("Silk");
-
-//     return 0;
-// }

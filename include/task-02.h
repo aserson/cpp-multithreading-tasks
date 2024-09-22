@@ -1,7 +1,8 @@
-﻿#include <iostream>
+﻿#pragma once
+
+#include <iostream>
 #include <thread>
 #include <mutex>
-#include <deque>
 #include <random>
 #include <vector>
 #include <algorithm> 
@@ -13,8 +14,12 @@ class CarWorkshop {
     std::vector<bool> masters_status;
     std::vector<std::thread> cars;
 
+    std::random_device rd;
+    std::mt19937 gen;
+    std::uniform_int_distribution<> dist;
+
 public:
-    CarWorkshop(std::size_t master_count) {
+    explicit CarWorkshop(const std::size_t master_count) : gen(rd()), dist(1,4) {
         masters_status.resize(master_count, true);
     }
 
@@ -25,8 +30,9 @@ public:
         }
     }
 
-    void add_car(std::string car_name) {
-        unsigned int time = 1 + rand() % 4;
+    void add_car(const std::string& car_name) {
+
+        unsigned int time = dist(gen);
         cars.emplace_back(&CarWorkshop::go_to_repair, this, car_name, time);
     }
 
@@ -39,24 +45,24 @@ private:
         return -1;
     }
 
-    void reparing(int time) {
+    static void processing(const int time) {
         std::this_thread::sleep_for(std::chrono::seconds(time));
     }
 
     bool is_free_master() {
-        return std::any_of(masters_status.begin(), masters_status.end(), [](bool status) { return status; });
+        return std::any_of(masters_status.begin(), masters_status.end(), [](const bool status) { return status; });
     }
 
-    void go_to_repair(std::string car_name, int time) {
+    void go_to_repair(const std::string &car_name, const int time) {
         std::unique_lock<std::mutex> lock(m);
 
         cond_var.wait(lock, [this] { return is_free_master(); });
 
-        int master_id = find_free_master();
+        const int master_id = find_free_master();
         masters_status[master_id] = false;
 
         lock.unlock();
-        reparing(time);
+        processing(time);
         lock.lock();
           
         std::cout << "Car " << car_name << " was repaired by master " << master_id + 1 << " in " << time << " hours" << std::endl;
@@ -64,15 +70,3 @@ private:
         cond_var.notify_all();
     }
 };
-
-// int main() {
-//     CarWorkshop ws(3);
-
-//     ws.add_car("Red Granta Old");
-//     ws.add_car("Red Granta New");
-//     ws.add_car("Black Almera");
-//     ws.add_car("Yellow Kia");
-//     ws.add_car("Timoxa");
-
-//     return 0;
-// }
